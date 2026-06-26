@@ -93,15 +93,10 @@
 
   <div class="card">
     <details class="adv">
-      <summary>Advanced <span style="font-weight:400;color:var(--hint);font-size:12.5px">— layout, areas, cloud (sensible defaults)</span></summary>
+      <summary>Advanced <span style="font-weight:400;color:var(--hint);font-size:12.5px">— areas, cloud, AI (sensible defaults)</span></summary>
       <div class="body">
-        <label style="margin-bottom:8px">Code layout</label>
-        <div class="row3">
-          <div><label for="app">App dir</label><input type="text" id="app" value="app"></div>
-          <div><label for="server">Server dir</label><input type="text" id="server" value="server"></div>
-          <div><label for="agent">Agent dir</label><input type="text" id="agent" value="" placeholder="(none)"></div>
-        </div>
-        <div class="fw"><label for="areas">Areas (comma-separated → area: labels)</label><input type="text" id="areas" value="web, server, infra"></div>
+        <div><label for="areas">Areas (comma-separated → area: labels)</label><input type="text" id="areas" value="web, server, infra"></div>
+        <p class="hint" style="margin-top:8px">Code layout is by convention — <code>app/</code> · <code>server/</code> · <code>agent/</code> (created by inception/the builder).</p>
         <div class="grid fw" style="align-items:end">
           <label class="chk"><input type="checkbox" id="cloud"> Enable cloud deploy (Azure)</label>
           <div><label for="domain">Custom domain</label><input type="text" id="domain" value="" placeholder="app.example.com"></div>
@@ -135,12 +130,10 @@ if(token)$("pat").value=token;
 
 function areas(){return val("areas").split(",").map(s=>s.trim()).filter(Boolean);}
 function yaml(){
-  const owner=val("owner"),name=val("name"),agent=val("agent"),cloud=$("cloud").checked;
+  const owner=val("owner"),name=val("name"),cloud=$("cloud").checked;
   const oneLine=(val("desc").split("\n")[0]||"").replace(/"/g,"'").slice(0,160);
   const L=["project:","  name: "+name,'  display_name: "'+val("title")+'"','  description: "'+oneLine+'"',
     "github:","  owner: "+owner,"  default_branch: main",
-    "paths:","  app_dir: "+(val("app")||"app"),"  server_dir: "+(val("server")||"server"),
-    "  agent_dir: "+(agent||'""'),
     "registry:","  image: ghcr.io/"+owner+"/"+name,
     "cloud:","  enabled: "+cloud,"  provider: azure",'  domain: "'+val("domain")+'"',
     "areas:",...areas().map(a=>"  - "+a),
@@ -155,7 +148,7 @@ function refresh(){
   $("cfg").textContent = yaml();
   $("spin").disabled = !(token && validName(name) && owner);
 }
-["name","desc","title","owner","vis","app","server","agent","areas","cloud","domain","model"].forEach(id=>{
+["name","desc","title","owner","vis","areas","cloud","domain","model"].forEach(id=>{
   const el=$(id); el.addEventListener(el.type==="checkbox"||el.tagName==="SELECT"?"change":"input",refresh);
 });
 $("copy").addEventListener("click",()=>navigator.clipboard.writeText(yaml()));
