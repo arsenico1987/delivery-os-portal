@@ -194,35 +194,15 @@ $("spin").addEventListener("click",async()=>{
     li=logStep("Waiting for the new repo to be ready…");
     for(let i=0;i<10;i++){try{await gh("GET","/repos/"+owner+"/"+name);break;}catch(e){await sleep(1500);}} done(li,true);
 
-    li=logStep("Committing delivery-os.config.yml…");
-    let committed=false;
-    for(let i=0;i<6;i++){try{
-      await gh("PUT","/repos/"+owner+"/"+name+"/contents/delivery-os.config.yml",
-        {message:"chore: project config (from the wizard)",content:b64(yaml()),branch:"main"});
-      committed=true;break;
-    }catch(e){await sleep(2000);}}
-    if(!committed)throw new Error("could not commit config (repo not ready)"); done(li,true);
-
-    if(desc){
-      li=logStep("Writing the project brief (docs/PROJECT-BRIEF.md)…");
-      const brief="# Project brief\n\n"+desc+"\n";
-      let sha=null; try{const f=await gh("GET","/repos/"+owner+"/"+name+"/contents/docs/PROJECT-BRIEF.md"); sha=f.sha;}catch(e){}
-      let wrote=false;
-      for(let i=0;i<5;i++){try{
-        await gh("PUT","/repos/"+owner+"/"+name+"/contents/docs/PROJECT-BRIEF.md",
-          {message:"docs: project brief (from the wizard)",content:b64(brief),branch:"main",...(sha?{sha}:{})});
-        wrote=true;break;
-      }catch(e){await sleep(1800);}}
-      done(li,wrote);
-    }
-
-    li=logStep("Running bootstrap (substitution · labels · ruleset · hub hello)…");
+    li=logStep("Bootstrapping (config + brief → substitution · CLAUDE.md · labels · ruleset · hub hello)…");
     let dispatched=false;
-    for(let i=0;i<6;i++){try{
-      await gh("POST","/repos/"+owner+"/"+name+"/actions/workflows/bootstrap.yml/dispatches",{ref:"main"});
+    for(let i=0;i<12;i++){try{
+      await gh("POST","/repos/"+owner+"/"+name+"/actions/workflows/bootstrap.yml/dispatches",
+        {ref:"main", inputs:{config:yaml(), brief:desc||""}});
       dispatched=true;break;
     }catch(e){await sleep(2500);}}
-    done(li,dispatched);
+    if(!dispatched)throw new Error("repo created, but the bootstrap workflow wasn't ready to dispatch — open the repo's Actions tab and run “Bootstrap project” (paste the config), or retry.");
+    done(li,true);
 
     const repoUrl="https://github.com/"+owner+"/"+name;
     const r=$("result"); r.className="result show";
