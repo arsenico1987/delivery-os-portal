@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spin up a new project · delivery-os</title>
+<style>
+  :root{
+    --bg:#faf9f5; --surface:#fff; --surface2:#f1efe8; --text:#1a1a18; --muted:#5f5e5a;
+    --hint:#8a897f; --border:rgba(0,0,0,.14); --accent:#185fa5; --accent-bg:#e6f1fb;
+    --ok:#0f6e56; --ok-bg:#e1f5ee; --err:#a32d2d; --err-bg:#fcebeb; --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#1f1e1b; --surface:#2a2926; --surface2:#33312d; --text:#ecebe6; --muted:#a8a69e;
+      --hint:#807e75; --border:rgba(255,255,255,.16); --accent:#85b7eb; --accent-bg:#0c2740;
+      --ok:#5dcaa5; --ok-bg:#0b3329; --err:#f09595; --err-bg:#3a1414; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:680px;margin:0 auto;padding:32px 20px 80px}
+  h1{font-size:24px;font-weight:600;margin:0 0 4px;display:flex;align-items:center;gap:10px}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 28px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;margin:0 0 18px}
+  .card h2{font-size:15px;font-weight:600;margin:0 0 14px;display:flex;align-items:center;gap:8px}
+  .num{display:inline-flex;width:22px;height:22px;border-radius:50%;background:var(--accent-bg);color:var(--accent);font-size:12px;font-weight:600;align-items:center;justify-content:center}
+  label{display:block;font-size:12.5px;color:var(--muted);margin:0 0 5px}
+  input[type=text],input[type=password],select{width:100%;height:38px;padding:0 11px;font-size:14px;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:8px;font-family:inherit}
+  input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+  .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+  .row3{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+  .chk{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text);cursor:pointer}
+  .chk input{width:16px;height:16px}
+  .hint{font-size:11.5px;color:var(--hint);margin:6px 0 0;font-family:var(--mono)}
+  .note{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+  .err-msg{font-size:11.5px;color:var(--err);min-height:14px;margin:4px 0 0}
+  pre{margin:0;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.55;overflow-x:auto;white-space:pre}
+  button{font-family:inherit;font-size:14px;font-weight:500;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text);padding:9px 16px;cursor:pointer;transition:.12s}
+  button:hover:not(:disabled){background:var(--surface2)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.primary:hover:not(:disabled){filter:brightness(1.07)}
+  .btnrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .pill{font-size:12px;padding:3px 9px;border-radius:7px;background:var(--surface2);color:var(--muted)}
+  .pill.ok{background:var(--ok-bg);color:var(--ok)} .pill.err{background:var(--err-bg);color:var(--err)}
+  #log{list-style:none;margin:14px 0 0;padding:0;font-size:13px}
+  #log li{display:flex;gap:9px;padding:5px 0;align-items:flex-start}
+  #log .ic{width:16px;flex:none;text-align:center;margin-top:2px}
+  .sp{display:inline-block;width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  a{color:var(--accent)}
+  .result{display:none;background:var(--ok-bg);border:1px solid var(--ok);border-radius:12px;padding:16px;margin:16px 0 0}
+  .result.show{display:block}
+  details summary{cursor:pointer;font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Spin up a new project</h1>
+  <p class="sub">Creates a repo from the <code>delivery-os</code> template, commits your config, and runs bootstrap — labels, branch protection, agents, and the hub registration.</p>
+
+  <div class="card">
+    <h2><span class="num">1</span> Connect GitHub</h2>
+    <label for="pat">Fine-grained personal access token</label>
+    <input type="password" id="pat" placeholder="github_pat_… (stored only in this browser tab)" autocomplete="off">
+    <div class="btnrow" style="margin-top:10px">
+      <button id="connect">Connect</button>
+      <span id="who" class="pill">not connected</span>
+    </div>
+    <p class="note">Needs, on your account, <em>All repositories</em> with permissions: <code>Administration</code> R/W, <code>Contents</code> R/W, <code>Actions</code> R/W. (A classic token with <code>repo</code> + <code>workflow</code> also works.) <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Create one ↗</a></p>
+    <p class="hint">The token never leaves your browser tab — it's kept in sessionStorage and sent only to api.github.com. Closing the tab clears it.</p>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">2</span> Project</h2>
+    <div class="grid">
+      <div><label for="name">Project name (kebab-case)</label><input type="text" id="name" value="my-app"><div class="err-msg" id="name-err"></div></div>
+      <div><label for="title">Display name</label><input type="text" id="title" value="My App"></div>
+      <div><label for="owner">GitHub owner</label><input type="text" id="owner" value="arsenico1987"></div>
+      <div><label for="vis">Visibility</label><select id="vis"><option value="true" selected>private</option><option value="false">public</option></select></div>
+    </div>
+    <p class="hint" id="derived"></p>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">3</span> Layout &amp; areas</h2>
+    <div class="row3">
+      <div><label for="app">App dir</label><input type="text" id="app" value="app"></div>
+      <div><label for="server">Server dir</label><input type="text" id="server" value="server"></div>
+      <div><label for="agent">Agent dir (optional)</label><input type="text" id="agent" value="" placeholder="(none)"></div>
+    </div>
+    <div style="margin-top:12px"><label for="areas">Areas (comma-separated → area: labels)</label><input type="text" id="areas" value="web, server, infra"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">4</span> Cloud &amp; AI <span style="font-weight:400;color:var(--hint);font-size:12px">— optional</span></h2>
+    <div class="grid" style="align-items:end">
+      <label class="chk"><input type="checkbox" id="cloud"> Enable cloud deploy (Azure)</label>
+      <div><label for="domain">Custom domain</label><input type="text" id="domain" value="" placeholder="app.example.com"></div>
+      <div><label for="model">AI model</label><input type="text" id="model" value="claude-opus-4-8"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">5</span> Review &amp; create</h2>
+    <details><summary>Generated delivery-os.config.yml</summary>
+      <pre id="cfg" style="margin-top:10px"></pre>
+    </details>
+    <div class="btnrow" style="margin-top:16px">
+      <button class="primary" id="spin" disabled>Spin up project</button>
+      <button id="copy">Copy config</button>
+    </div>
+    <ul id="log"></ul>
+    <div class="result" id="result"></div>
+  </div>
+</div>
+
+<script>
+const TEMPLATE="arsenico1987/delivery-os";
+const $=id=>document.getElementById(id);
+const val=id=>($(id).value||"").trim();
+const validName=n=>/^[a-z0-9]+(-[a-z0-9]+)*$/.test(n);
+let token=sessionStorage.getItem("dos_pat")||"";
+if(token)$("pat").value=token;
+
+function areas(){return val("areas").split(",").map(s=>s.trim()).filter(Boolean);}
+function yaml(){
+  const owner=val("owner"),name=val("name"),agent=val("agent"),cloud=$("cloud").checked;
+  const L=["project:","  name: "+name,'  display_name: "'+val("title")+'"',
+    "github:","  owner: "+owner,"  default_branch: main",
+    "paths:","  app_dir: "+(val("app")||"app"),"  server_dir: "+(val("server")||"server"),
+    "  agent_dir: "+(agent||'""'),
+    "registry:","  image: ghcr.io/"+owner+"/"+name,
+    "cloud:","  enabled: "+cloud,"  provider: azure",'  domain: "'+val("domain")+'"',
+    "areas:",...areas().map(a=>"  - "+a),
+    "ai:","  anthropic_key_secret: ANTHROPIC_API_KEY","  model: "+(val("model")||"claude-opus-4-8"),
+    "hub:","  enabled: true","  repo: "+owner+"/delivery-os-hub","  upstream: "+owner+"/delivery-os"];
+  return L.join("\n");
+}
+function refresh(){
+  const name=val("name"),owner=val("owner");
+  $("name-err").textContent = name&&!validName(name) ? "lowercase letters, numbers, hyphens only" : "";
+  $("derived").textContent = "→ ghcr.io/"+owner+"/"+(name||"…")+"   ·   hub: "+owner+"/delivery-os-hub";
+  $("cfg").textContent = yaml();
+  $("spin").disabled = !(token && validName(name) && owner);
+}
+["name","title","owner","vis","app","server","agent","areas","cloud","domain","model"].forEach(id=>{
+  const el=$(id); el.addEventListener(el.type==="checkbox"||el.tagName==="SELECT"?"change":"input",refresh);
+});
+$("copy").addEventListener("click",()=>navigator.clipboard.writeText(yaml()));
+
+async function gh(method,path,body){
+  const r=await fetch("https://api.github.com"+path,{method,
+    headers:{Authorization:"Bearer "+token,Accept:"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28",
+      ...(body?{"Content-Type":"application/json"}:{})},
+    body:body?JSON.stringify(body):undefined});
+  if(!r.ok){let m="";try{m=(await r.json()).message||"";}catch(e){} throw new Error("GitHub "+r.status+(m?" — "+m:"")+" ("+path+")");}
+  return r.status===204?null:r.json();
+}
+const b64=s=>btoa(unescape(encodeURIComponent(s)));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+$("connect").addEventListener("click",async()=>{
+  token=val("pat").trim();
+  $("who").className="pill"; $("who").textContent="checking…";
+  try{const u=await gh("GET","/user"); token&&sessionStorage.setItem("dos_pat",token);
+    $("who").className="pill ok"; $("who").textContent="✓ "+u.login;
+  }catch(e){$("who").className="pill err"; $("who").textContent="✗ invalid token"; token="";}
+  refresh();
+});
+
+const steps=[];
+function logStep(txt){const li=document.createElement("li");li.innerHTML='<span class="ic"><span class="sp"></span></span><span>'+txt+'</span>';$("log").appendChild(li);return li;}
+function done(li,ok){li.querySelector(".ic").textContent=ok?"✓":"✗";li.querySelector(".ic").style.color=ok?"var(--ok)":"var(--err)";}
+
+$("spin").addEventListener("click",async()=>{
+  $("spin").disabled=true; $("log").innerHTML=""; $("result").className="result";
+  const owner=val("owner"),name=val("name"),priv=val("vis")==="true";
+  try{
+    let li=logStep("Creating "+owner+"/"+name+" from the template…");
+    await gh("POST","/repos/"+TEMPLATE+"/generate",{owner,name,private:priv,include_all_branches:false,
+      description:"Spun up from delivery-os"}); done(li,true);
+
+    li=logStep("Waiting for the new repo to be ready…");
+    for(let i=0;i<10;i++){try{await gh("GET","/repos/"+owner+"/"+name);break;}catch(e){await sleep(1500);}} done(li,true);
+
+    li=logStep("Committing delivery-os.config.yml…");
+    let committed=false;
+    for(let i=0;i<6;i++){try{
+      await gh("PUT","/repos/"+owner+"/"+name+"/contents/delivery-os.config.yml",
+        {message:"chore: project config (from the wizard)",content:b64(yaml()),branch:"main"});
+      committed=true;break;
+    }catch(e){await sleep(2000);}}
+    if(!committed)throw new Error("could not commit config (repo not ready)"); done(li,true);
+
+    li=logStep("Running bootstrap (substitution · labels · ruleset · hub hello)…");
+    let dispatched=false;
+    for(let i=0;i<6;i++){try{
+      await gh("POST","/repos/"+owner+"/"+name+"/actions/workflows/bootstrap.yml/dispatches",{ref:"main"});
+      dispatched=true;break;
+    }catch(e){await sleep(2500);}}
+    done(li,dispatched);
+
+    const repoUrl="https://github.com/"+owner+"/"+name;
+    const r=$("result"); r.className="result show";
+    r.innerHTML='<strong>Project created.</strong> '+(dispatched?'Bootstrap is running.':'Bootstrap couldn\'t be auto-dispatched — run the “Bootstrap project” workflow manually.')+
+      '<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:14px;font-size:13px">'+
+      '<a href="'+repoUrl+'" target="_blank" rel="noopener">Open repo ↗</a>'+
+      '<a href="'+repoUrl+'/actions" target="_blank" rel="noopener">Watch bootstrap ↗</a></div>'+
+      '<p class="note" style="margin-top:10px">Next: open it in Claude Code (the <code>.claude</code> agents + commands are already there), then register the 3 scheduled cloud agents with <code>/schedule</code> (Ideation · Refinement · Reporter).</p>';
+  }catch(e){
+    const li=logStep("<span style=\"color:var(--err)\">"+e.message+"</span>"); done(li,false);
+    $("spin").disabled=false;
+  }
+});
+refresh();
+</script>
+</body>
+</html>
