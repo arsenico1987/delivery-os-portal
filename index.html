@@ -26,6 +26,8 @@
   label{display:block;font-size:12.5px;color:var(--muted);margin:0 0 5px}
   input[type=text],input[type=password],select{width:100%;height:38px;padding:0 11px;font-size:14px;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:8px;font-family:inherit}
   input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+  textarea{width:100%;min-height:110px;padding:10px 11px;font-size:14px;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:8px;font-family:inherit;line-height:1.55;resize:vertical}
+  textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
   .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
   .row3{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
   .fw{margin-top:12px}
@@ -80,7 +82,7 @@
   <div class="card">
     <h2><span class="num">2</span> Project</h2>
     <div class="fw" style="margin-top:0"><label for="name">Project name (kebab-case)</label><input type="text" id="name" value="my-app"><div class="err-msg" id="name-err"></div></div>
-    <div class="fw"><label for="desc">Brief description</label><input type="text" id="desc" value="" placeholder="One line: what does this app do?"></div>
+    <div class="fw"><label for="desc">Project description — what should this app be?</label><textarea id="desc" placeholder="Describe the app: what it does and for whom · key features / user journeys · the data it stores · who signs in (and how) · external services or APIs · expected scale · any hosting / cost / compliance constraints. The /inception agent deep-dives this into the required infrastructure + architecture, so be concrete."></textarea></div>
     <div class="grid fw">
       <div><label for="title">Display name</label><input type="text" id="title" value="My App"></div>
       <div><label for="owner">GitHub owner</label><input type="text" id="owner" value="arsenico1987"></div>
@@ -134,7 +136,8 @@ if(token)$("pat").value=token;
 function areas(){return val("areas").split(",").map(s=>s.trim()).filter(Boolean);}
 function yaml(){
   const owner=val("owner"),name=val("name"),agent=val("agent"),cloud=$("cloud").checked;
-  const L=["project:","  name: "+name,'  display_name: "'+val("title")+'"','  description: "'+val("desc")+'"',
+  const oneLine=(val("desc").split("\n")[0]||"").replace(/"/g,"'").slice(0,160);
+  const L=["project:","  name: "+name,'  display_name: "'+val("title")+'"','  description: "'+oneLine+'"',
     "github:","  owner: "+owner,"  default_branch: main",
     "paths:","  app_dir: "+(val("app")||"app"),"  server_dir: "+(val("server")||"server"),
     "  agent_dir: "+(agent||'""'),
@@ -200,6 +203,19 @@ $("spin").addEventListener("click",async()=>{
     }catch(e){await sleep(2000);}}
     if(!committed)throw new Error("could not commit config (repo not ready)"); done(li,true);
 
+    if(desc){
+      li=logStep("Writing the project brief (docs/PROJECT-BRIEF.md)…");
+      const brief="# Project brief\n\n"+desc+"\n";
+      let sha=null; try{const f=await gh("GET","/repos/"+owner+"/"+name+"/contents/docs/PROJECT-BRIEF.md"); sha=f.sha;}catch(e){}
+      let wrote=false;
+      for(let i=0;i<5;i++){try{
+        await gh("PUT","/repos/"+owner+"/"+name+"/contents/docs/PROJECT-BRIEF.md",
+          {message:"docs: project brief (from the wizard)",content:b64(brief),branch:"main",...(sha?{sha}:{})});
+        wrote=true;break;
+      }catch(e){await sleep(1800);}}
+      done(li,wrote);
+    }
+
     li=logStep("Running bootstrap (substitution · labels · ruleset · hub hello)…");
     let dispatched=false;
     for(let i=0;i<6;i++){try{
@@ -214,9 +230,9 @@ $("spin").addEventListener("click",async()=>{
       '<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:14px;font-size:13px">'+
       '<a href="'+repoUrl+'" target="_blank" rel="noopener">Open repo ↗</a>'+
       '<a href="'+repoUrl+'/actions" target="_blank" rel="noopener">Watch bootstrap ↗</a></div>'+
-      '<p class="note" style="margin-top:14px;color:var(--text)"><strong>Start Claude with all the agents</strong> — once bootstrap finishes:</p>'+
+      '<p class="note" style="margin-top:14px;color:var(--text)"><strong>Start Claude, then run inception</strong> — once bootstrap finishes:</p>'+
       '<pre>git clone '+repoUrl+'.git\ncd '+name+'\nclaude</pre>'+
-      '<p class="note">Running <code>claude</code> in the repo auto-loads the <code>.claude/</code> agents + slash commands (<code>/build-loop</code>, <code>/triage</code>, <code>/refine</code>, <code>/hotfix</code>, <code>/fleet-digest</code>, <code>/sync-framework</code>). Then register the 3 scheduled cloud agents once with <code>/schedule</code> (Ideation · Refinement · Reporter), and you\'re running.</p>';
+      '<p class="note">Running <code>claude</code> auto-loads the <code>.claude/</code> agents + commands. Your first command is <strong><code>/inception</code></strong> — it reads your description (<code>docs/PROJECT-BRIEF.md</code>) and deep-dives the required infrastructure + architecture, then files the foundation as <code>ready-to-build</code> issues. Then <code>/build-loop</code> to execute them. (Register the 3 scheduled cloud agents once with <code>/schedule</code>.)</p>';
   }catch(e){
     const li=logStep("<span style=\"color:var(--err)\">"+e.message+"</span>"); done(li,false);
     $("spin").disabled=false;
